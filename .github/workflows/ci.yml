@@ -66,6 +66,9 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Rendre Maven Wrapper exécutable
+        run: chmod +x ./mvnw
+        
       - name: Exécuter le test Spring Boot avec profil qualif
         env:
           SPRING_PROFILES_ACTIVE: qualif
