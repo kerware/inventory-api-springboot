@@ -22,7 +22,10 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-
+          
+      - name: Rendre Maven Wrapper exécutable
+        run: chmod +x ./mvnw
+        
       - name: Exécuter les tests avec le profil test
         run: ./mvnw -B clean verify -Dspring.profiles.active=test
 
