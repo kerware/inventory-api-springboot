@@ -149,6 +149,11 @@ jobs:
         working-directory: ansible
         run: ansible-playbook playbooks/deploy-compose.yml --limit local
 
+      - name: Rendre les scripts exécutables
+        run: |
+          chmod +x ./mvnw || true
+          find ./scripts -type f -name "*.sh" -exec chmod +x {} \;
+          
       - name: Tester l'API déployée par Ansible
         run: |
           ./scripts/wait-http.sh http://localhost:8082/actuator/health 120
