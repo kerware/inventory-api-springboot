@@ -1,0 +1,14 @@
+app_name: inventory-api
+project_root: "{{ playbook_dir }}/../.."
+deploy_dir: /tmp/inventory-api-ansible-deploy
+compose_files:
+  - compose.yml
+  - compose.qualif.yml
+
+app_version: ansible-local
+app_http_port: 8082
+postgres_port: 5434
+postgres_db: inventory
+postgres_user: inventory_user
+postgres_password: inventory_password
+spring_profile: qualif

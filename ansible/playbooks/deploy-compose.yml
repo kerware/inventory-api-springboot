@@ -1,0 +1,8 @@
+---
+- name: Déployer inventory-api avec Docker Compose v2
+  hosts: all
+  gather_facts: true
+
+  roles:
+    - role: docker
+    - role: inventory_stack

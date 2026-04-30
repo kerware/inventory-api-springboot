@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: inventory-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-inventory}
+      POSTGRES_USER: ${POSTGRES_USER:-inventory_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inventory_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - inventory_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-inventory_user} -d ${POSTGRES_DB:-inventory}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  inventory-api:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: qualif
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-inventory}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-inventory_user}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-inventory_password}
+    volumes: []
+
+volumes:
+  inventory_postgres_data:

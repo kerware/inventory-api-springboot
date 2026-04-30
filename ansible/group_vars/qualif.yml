@@ -1,0 +1,14 @@
+app_name: inventory-api
+project_root: "{{ playbook_dir }}/../.."
+deploy_dir: /opt/inventory-api
+compose_files:
+  - compose.yml
+  - compose.qualif.yml
+
+app_version: qualif
+app_http_port: 8080
+postgres_port: 5432
+postgres_db: inventory
+postgres_user: inventory_user
+postgres_password: "{{ vault_postgres_password | default('inventory_password') }}"
+spring_profile: qualif

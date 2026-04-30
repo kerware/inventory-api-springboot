@@ -1,0 +1,26 @@
+services:
+  inventory-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: inventory-api:${APP_VERSION:-local}
+    container_name: inventory-api
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:h2:file:/app/data/inventory-db}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-sa}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-}
+    ports:
+      - "${APP_HTTP_PORT:-8080}:8080"
+    volumes:
+      - inventory_h2_data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  inventory_h2_data:

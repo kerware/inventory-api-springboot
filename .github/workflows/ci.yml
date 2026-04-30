@@ -1,0 +1,155 @@
+name: CI - inventory-api
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+  workflow_dispatch:
+
+jobs:
+  unit-tests-h2:
+    name: Tests unitaires et MVC avec H2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+
+      - name: Installer Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Exécuter les tests avec le profil test
+        run: ./mvnw -B clean verify -Dspring.profiles.active=test
+
+      - name: Publier le rapport JaCoCo
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+
+  integration-tests-postgres:
+    name: Tests d'intégration avec PostgreSQL
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: inventory
+          POSTGRES_USER: inventory_user
+          POSTGRES_PASSWORD: inventory_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U inventory_user -d inventory"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+
+      - name: Installer Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Exécuter le test Spring Boot avec profil qualif
+        env:
+          SPRING_PROFILES_ACTIVE: qualif
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/inventory
+          SPRING_DATASOURCE_USERNAME: inventory_user
+          SPRING_DATASOURCE_PASSWORD: inventory_password
+        run: ./mvnw -B -Dtest=InventoryApiPostgresIT test
+
+  docker-compose-smoke:
+    name: Build image et smoke test Docker Compose
+    runs-on: ubuntu-latest
+    needs: [unit-tests-h2, integration-tests-postgres]
+
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+
+      - name: Démarrer la stack dev H2
+        run: |
+          cp env/.env.dev.example .env
+          docker compose -f compose.yml up -d --build
+          ./scripts/wait-http.sh http://localhost:8080/actuator/health 120
+
+      - name: Tester l'API REST
+        run: |
+          curl -fsS http://localhost:8080/actuator/health
+          curl -fsS http://localhost:8080/api/products
+          curl -fsS -X POST http://localhost:8080/api/products \
+            -H "Content-Type: application/json" \
+            -d '{"name":"CI product","quantity":3}'
+
+      - name: Afficher les logs en cas d'échec
+        if: failure()
+        run: docker compose -f compose.yml logs
+
+      - name: Arrêter la stack dev
+        if: always()
+        run: docker compose -f compose.yml down -v --remove-orphans
+
+      - name: Démarrer la stack qualif PostgreSQL
+        run: |
+          cp env/.env.qualif.example .env
+          docker compose -f compose.yml -f compose.qualif.yml up -d --build
+          ./scripts/wait-http.sh http://localhost:8080/actuator/health 180
+          curl -fsS http://localhost:8080/api/products
+
+      - name: Afficher les logs qualif en cas d'échec
+        if: failure()
+        run: docker compose -f compose.yml -f compose.qualif.yml logs
+
+      - name: Arrêter la stack qualif
+        if: always()
+        run: docker compose -f compose.yml -f compose.qualif.yml down -v --remove-orphans
+
+  ansible-check:
+    name: Vérification Ansible
+    runs-on: ubuntu-latest
+    needs: [docker-compose-smoke]
+
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+
+      - name: Installer Ansible et la collection Docker
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ansible
+          ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Vérifier la syntaxe du playbook
+        working-directory: ansible
+        run: ansible-playbook --syntax-check playbooks/deploy-compose.yml
+
+      - name: Déployer localement avec Ansible
+        working-directory: ansible
+        run: ansible-playbook playbooks/deploy-compose.yml --limit local
+
+      - name: Tester l'API déployée par Ansible
+        run: |
+          ./scripts/wait-http.sh http://localhost:8082/actuator/health 120
+          curl -fsS http://localhost:8082/api/products
+
+      - name: Logs en cas d'échec
+        if: failure()
+        run: docker compose -p inventory-api -f /tmp/inventory-api-ansible-deploy/compose.yml -f /tmp/inventory-api-ansible-deploy/compose.qualif.yml logs || true
+
+      - name: Nettoyer le déploiement Ansible
+        if: always()
+        working-directory: ansible
+        run: ansible-playbook playbooks/stop-compose.yml --limit local

@@ -1,0 +1,71 @@
+inventory-api/
+├── .github
+│   └── workflows
+│       └── ci.yml
+├── .mvn
+│   └── wrapper
+│       └── maven-wrapper.properties
+├── ansible
+│   ├── group_vars
+│   │   ├── local.yml
+│   │   └── qualif.yml
+│   ├── inventories
+│   │   ├── local.ini
+│   │   └── qualif.ini
+│   ├── playbooks
+│   │   ├── deploy-compose.yml
+│   │   └── stop-compose.yml
+│   ├── roles
+│   │   ├── docker
+│   │   │   └── tasks
+│   │   │       └── main.yml
+│   │   └── inventory_stack
+│   │       ├── tasks
+│   │       │   └── main.yml
+│   │       └── templates
+│   │           └── env.j2
+│   ├── ansible.cfg
+│   └── requirements.yml
+├── env
+│   ├── .env.dev.example
+│   └── .env.qualif.example
+├── scripts
+│   ├── test-manual-deploy.sh
+│   └── wait-http.sh
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   └── fr
+│   │   │       └── training
+│   │   │           └── inventory
+│   │   │               ├── product
+│   │   │               │   ├── Product.java
+│   │   │               │   ├── ProductController.java
+│   │   │               │   ├── ProductNotFoundException.java
+│   │   │               │   ├── ProductRepository.java
+│   │   │               │   ├── ProductRequest.java
+│   │   │               │   ├── ProductResponse.java
+│   │   │               │   └── RestExceptionHandler.java
+│   │   │               └── InventoryApiApplication.java
+│   │   └── resources
+│   │       ├── application.yml
+│   │       └── data.sql
+│   └── test
+│       ├── java
+│       │   └── fr
+│       │       └── training
+│       │           └── inventory
+│       │               ├── product
+│       │               │   └── ProductControllerTest.java
+│       │               └── InventoryApiPostgresIT.java
+│       └── resources
+│           └── application-test.yml
+├── .dockerignore
+├── .gitignore
+├── ARBORESCENCE.txt
+├── compose.qualif.yml
+├── compose.yml
+├── Dockerfile
+├── mvnw
+├── pom.xml
+└── README.md

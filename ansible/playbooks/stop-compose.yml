@@ -1,0 +1,13 @@
+---
+- name: Arrêter inventory-api avec Docker Compose v2
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Arrêter la stack Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ deploy_dir }}"
+        files: "{{ compose_files }}"
+        state: absent
+        remove_orphans: true
+      ignore_errors: true

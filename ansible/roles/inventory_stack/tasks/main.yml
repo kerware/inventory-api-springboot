@@ -1,0 +1,77 @@
+---
+- name: Créer le répertoire de déploiement
+  file:
+    path: "{{ deploy_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copier le fichier Compose principal
+  copy:
+    src: "{{ project_root }}/compose.yml"
+    dest: "{{ deploy_dir }}/compose.yml"
+    mode: "0644"
+
+- name: Copier le fichier Compose qualification
+  copy:
+    src: "{{ project_root }}/compose.qualif.yml"
+    dest: "{{ deploy_dir }}/compose.qualif.yml"
+    mode: "0644"
+
+- name: Copier le Dockerfile
+  copy:
+    src: "{{ project_root }}/Dockerfile"
+    dest: "{{ deploy_dir }}/Dockerfile"
+    mode: "0644"
+
+- name: Copier le wrapper Maven
+  copy:
+    src: "{{ project_root }}/mvnw"
+    dest: "{{ deploy_dir }}/mvnw"
+    mode: "0755"
+
+- name: Copier le répertoire .mvn
+  copy:
+    src: "{{ project_root }}/.mvn"
+    dest: "{{ deploy_dir }}/"
+    mode: preserve
+
+- name: Copier le pom.xml
+  copy:
+    src: "{{ project_root }}/pom.xml"
+    dest: "{{ deploy_dir }}/pom.xml"
+    mode: "0644"
+
+- name: Copier les sources Java
+  copy:
+    src: "{{ project_root }}/src"
+    dest: "{{ deploy_dir }}/"
+    mode: preserve
+
+- name: Générer le fichier .env
+  template:
+    src: env.j2
+    dest: "{{ deploy_dir }}/.env"
+    mode: "0600"
+
+- name: Construire et démarrer la stack Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_dir }}"
+    files: "{{ compose_files }}"
+    build: always
+    state: present
+    wait: true
+    wait_timeout: 120
+
+- name: Vérifier le health endpoint
+  uri:
+    url: "http://localhost:{{ app_http_port }}/actuator/health"
+    method: GET
+    status_code: 200
+  register: health_result
+  retries: 12
+  delay: 5
+  until: health_result.status == 200
+
+- name: Afficher le résultat du health check
+  debug:
+    var: health_result.json

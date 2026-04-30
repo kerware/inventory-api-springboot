@@ -1,0 +1,6 @@
+---
+- name: Afficher un message si Docker doit être installé manuellement
+  debug:
+    msg: >
+      Ce rôle suppose que Docker et le plugin Docker Compose v2 sont installés.
+      En production, ajouter ici l'installation Docker adaptée à la distribution cible.
