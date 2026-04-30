@@ -85,7 +85,10 @@ jobs:
     steps:
       - name: Récupérer les sources
         uses: actions/checkout@v4
-
+        
+      - name: Rendre les scripts exécutables
+        run: chmod +x ./mvnw ./scripts/*.sh
+        
       - name: Démarrer la stack dev H2
         run: |
           cp env/.env.dev.example .env
